@@ -53,6 +53,4 @@ export interface AuthContextType {
   register: (userData: Omit<User, 'id'> & { password: string }) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
-  viewProfile: () => Promise<User | null>;
-  deleteProfile: () => Promise<boolean>;
 }

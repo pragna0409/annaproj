@@ -7,32 +7,20 @@ interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { user, logout, viewProfile, deleteProfile } = useAuth();
+  const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [profileModal, setProfileModal] = useState(false);
-  const [profileData, setProfileData] = useState<any>(null);
-  const [loadingProfile, setLoadingProfile] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
-  const handleDeleteProfile = async () => {
+  const handleDeleteProfile = () => {
     if (window.confirm('Are you sure you want to delete your profile? This action cannot be undone.')) {
-      setDeleting(true);
-      const success = await deleteProfile();
-      setDeleting(false);
-      if (success) {
-        alert('Profile deleted successfully.');
-      } else {
-        alert('Failed to delete profile.');
-      }
+      // TODO: Call backend API to delete user profile, then logout
+      alert('Profile deleted (implement backend call)');
+      logout();
     }
   };
 
-  const handleViewProfile = async () => {
-    setLoadingProfile(true);
-    setProfileModal(true);
-    const data = await viewProfile();
-    setProfileData(data);
-    setLoadingProfile(false);
+  const handleViewProfile = () => {
+    // TODO: Implement view profile navigation or modal
+    alert('View Profile (implement navigation/modal)');
   };
 
   return (
@@ -71,9 +59,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <button
                     className="flex items-center w-full px-4 py-2 text-red-600 hover:bg-red-50"
                     onClick={() => { setMenuOpen(false); handleDeleteProfile(); }}
-                    disabled={deleting}
                   >
-                    <Trash2 className="w-4 h-4 mr-2" /> {deleting ? 'Deleting...' : 'Delete Profile'}
+                    <Trash2 className="w-4 h-4 mr-2" /> Delete Profile
                   </button>
                   <button
                     className="flex items-center w-full px-4 py-2 text-gray-700 hover:bg-gray-100 border-t border-gray-200"
@@ -87,34 +74,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         </div>
       </header>
-
-      {/* Profile Modal */}
-      {profileModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md relative">
-            <button
-              className="absolute top-2 right-2 text-gray-400 hover:text-gray-700"
-              onClick={() => setProfileModal(false)}
-            >
-              ×
-            </button>
-            <h2 className="text-xl font-bold mb-4 text-gray-800">Profile Details</h2>
-            {loadingProfile ? (
-              <div className="text-center text-gray-500">Loading...</div>
-            ) : profileData ? (
-              <div className="space-y-2">
-                <div><span className="font-semibold">Username:</span> {profileData.username}</div>
-                <div><span className="font-semibold">Email:</span> {profileData.email}</div>
-                <div><span className="font-semibold">Role:</span> {profileData.role}</div>
-                <div><span className="font-semibold">Root User:</span> {profileData.isRoot ? 'Yes' : 'No'}</div>
-                <div><span className="font-semibold">ID:</span> {profileData.id}</div>
-              </div>
-            ) : (
-              <div className="text-center text-red-500">Failed to load profile.</div>
-            )}
-          </div>
-        </div>
-      )}
 
       <main className="relative z-10">
         {children}

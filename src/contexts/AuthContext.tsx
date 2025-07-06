@@ -15,93 +15,55 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-const API_URL = 'http://localhost:5000/api';
-
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('currentUser');
-    const storedToken = localStorage.getItem('token');
-    if (storedUser && storedToken) {
+    if (storedUser) {
       setUser(JSON.parse(storedUser));
-      setToken(storedToken);
       setIsAuthenticated(true);
     }
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {
-    try {
-      const res = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-      if (!res.ok) return false;
-      const data = await res.json();
-      setUser(data.user);
-      setToken(data.token);
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const user = users.find((u: any) => u.username === username && u.password === password);
+    if (user) {
+      setUser(user);
       setIsAuthenticated(true);
-      localStorage.setItem('currentUser', JSON.stringify(data.user));
-      localStorage.setItem('token', data.token);
+      localStorage.setItem('currentUser', JSON.stringify(user));
       return true;
-    } catch {
-      return false;
     }
+    return false;
   };
 
   const register = async (userData: Omit<User, 'id'> & { password: string }): Promise<boolean> => {
-    try {
-      const res = await fetch(`${API_URL}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userData)
-      });
-      if (!res.ok) return false;
-      const data = await res.json();
-      setUser(data.user);
-      setToken(data.token);
-      setIsAuthenticated(true);
-      localStorage.setItem('currentUser', JSON.stringify(data.user));
-      localStorage.setItem('token', data.token);
-      return true;
-    } catch {
-      return false;
+    let users = JSON.parse(localStorage.getItem('users') || '[]');
+    if (users.some((u: any) => u.username === userData.username)) {
+      return false; // Username already exists
     }
+    if (userData.isRoot && users.some((u: any) => u.isRoot)) {
+      return false; // Only one root user allowed
+    }
+    const newUser = { ...userData, id: Date.now().toString() };
+    users.push({ ...newUser, password: userData.password });
+    localStorage.setItem('users', JSON.stringify(users));
+    setUser(newUser);
+    setIsAuthenticated(true);
+    localStorage.setItem('currentUser', JSON.stringify(newUser));
+    return true;
   };
 
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
-    setToken(null);
     localStorage.removeItem('currentUser');
-    localStorage.removeItem('token');
-  };
-
-  const viewProfile = async (): Promise<User | null> => {
-    if (!token) return null;
-    const res = await fetch(`${API_URL}/users/me`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (!res.ok) return null;
-    return await res.json();
-  };
-
-  const deleteProfile = async (): Promise<boolean> => {
-    if (!token) return false;
-    const res = await fetch(`${API_URL}/users/me`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (!res.ok) return false;
-    logout();
-    return true;
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isAuthenticated, viewProfile, deleteProfile }}>
+    <AuthContext.Provider value={{ user, login, register, logout, isAuthenticated }}>
       {children}
     </AuthContext.Provider>
   );
