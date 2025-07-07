@@ -3,6 +3,10 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import pool from './config/database.js';
 import usersRouter from './routes/users.js';
+import clientsRouter from './routes/clients.js';
+import inventoryRouter from './routes/inventory.js';
+import chalansRouter from './routes/chalans.js';
+import authRouter from './routes/auth.js';
 
 dotenv.config();
 
@@ -18,6 +22,10 @@ app.get('/', (req, res) => {
 // TODO: Add route imports here
 
 app.use('/api/users', usersRouter);
+app.use('/api/clients', clientsRouter);
+app.use('/api/inventory', inventoryRouter);
+app.use('/api/chalans', chalansRouter);
+app.use('/api/auth', authRouter);
 
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {

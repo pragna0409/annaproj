@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, AuthContextType } from '../types';
+import * as profileApi from '../utils/profileApi';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -20,46 +21,62 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('currentUser');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-      setIsAuthenticated(true);
+    const token = localStorage.getItem('token');
+    if (token) {
+      profileApi.getProfile()
+        .then(profile => {
+          setUser(profile);
+          setIsAuthenticated(true);
+        })
+        .catch(() => {
+          setUser(null);
+          setIsAuthenticated(false);
+        });
     }
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find((u: any) => u.username === username && u.password === password);
-    if (user) {
-      setUser(user);
+    try {
+      const res = await fetch('http://localhost:5001/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      localStorage.setItem('token', data.token);
+      const profile = await profileApi.getProfile();
+      setUser(profile);
       setIsAuthenticated(true);
-      localStorage.setItem('currentUser', JSON.stringify(user));
       return true;
+    } catch {
+      return false;
     }
-    return false;
   };
 
   const register = async (userData: Omit<User, 'id'> & { password: string }): Promise<boolean> => {
-    let users = JSON.parse(localStorage.getItem('users') || '[]');
-    if (users.some((u: any) => u.username === userData.username)) {
-      return false; // Username already exists
+    try {
+      const res = await fetch('http://localhost:5001/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData)
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      localStorage.setItem('token', data.token);
+      const profile = await profileApi.getProfile();
+      setUser(profile);
+      setIsAuthenticated(true);
+      return true;
+    } catch {
+      return false;
     }
-    if (userData.isRoot && users.some((u: any) => u.isRoot)) {
-      return false; // Only one root user allowed
-    }
-    const newUser = { ...userData, id: Date.now().toString() };
-    users.push({ ...newUser, password: userData.password });
-    localStorage.setItem('users', JSON.stringify(users));
-    setUser(newUser);
-    setIsAuthenticated(true);
-    localStorage.setItem('currentUser', JSON.stringify(newUser));
-    return true;
   };
 
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
-    localStorage.removeItem('currentUser');
+    localStorage.removeItem('token');
   };
 
   return (
